@@ -30,11 +30,16 @@ const config = {
         use: 'ts-loader',
         exclude: /node_modules/,
       },
+       {
+        test: /\.css$/,
+        use: ["style-loader", "css-loader"],
+      }
     ],
   },
   plugins: [
     new HtmlWebpackPlugin({
       title: 'Puzzle Physics Game',
+      template: 'src/index.html',
     }),
   ],
 };
