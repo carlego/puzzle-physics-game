@@ -72,16 +72,18 @@ export class SimulationFrame {
   }
 
   public spawnShape(shape: string, x: number, y: number) {
-    const body = this.world.createDynamicBody(Vec2(x, y));
+    const body = this.world.createDynamicBody(new Vec2(x, y));
 
     if (shape === "circle") {
       body.createFixture(new Circle(0.5), { density: 1, friction: 0.3 });
     } else if (shape === "square") {
       body.createFixture(new Box(0.5, 0.5), { density: 1, friction: 0.3 });
+      body.setUserData({ type: "square" });
     } else if (shape === "triangle") {
       body.createFixture(new Polygon([
         new Vec2(0, 0.6), new Vec2(-0.6, -0.6), Vec2(0.6, -0.6)
       ]), { density: 1, friction: 0.3 });
+      body.setUserData({ type: "triangle" });
     }
   }
 
@@ -91,7 +93,44 @@ export class SimulationFrame {
 
   private run() {
     const step = () => {
-      this.world.step(1 / 60);
+    const dt = 1 / 60;
+
+    // Apply non-Newtonian behavior for triangle
+    for (let b = this.world.getBodyList(); b; b = b.getNext()) {
+      const data = b.getUserData() as { type?: string } | undefined;
+      if (data?.type === "triangle") {
+        const vel = b.getLinearVelocity();
+        if (vel.y < 0) {
+          const k = 2.0; // tweak coefficient: higher = stronger slowdown
+          let upwardForce = -k * vel.y * vel.y;
+          upwardForce = Math.min(upwardForce, 100);
+          b.applyForce(new Vec2(0, upwardForce), b.getWorldCenter());
+        }
+      }
+
+      if (data?.type === "square") {
+        const pos = b.getPosition();
+        const vel = b.getLinearVelocity();
+
+        // where the triangle should hover
+        const targetY = 5;   // adjust as needed
+        const k = 20.0;      // spring stiffness
+        const d = 5.0;       // damping factor
+
+        // spring force toward target
+        const springForce = k * (targetY - pos.y);
+
+        // damping force against velocity
+        const dampingForce = -d * vel.y;
+
+        // total vertical force
+        const totalForce = springForce + dampingForce;
+
+        b.applyForce(new Vec2(0, totalForce), b.getWorldCenter());
+      }
+    }
+
+      this.world.step(dt);
       this.ctx.clearRect(0, 0, this.width, this.height);
 
       for (let b = this.world.getBodyList(); b; b = b.getNext()) {
