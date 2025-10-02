@@ -1,0 +1,79 @@
+{
+  "puzzle": [
+    {
+      "body": {
+        "type": "static",
+        "position": [0, 0]
+      },
+      "fixtures": [
+        {
+          "shape": {
+            "type": "edge",
+            "vertex1": [-10, 0],
+            "vertex2": [10, 0]
+          },
+          "friction": 0.6
+        }
+      ]
+    },
+    {
+      "body": {
+        "type": "static",
+        "position": [5, 3]
+      },
+      "fixtures": [
+        {
+          "shape": {
+            "type": "polygon",
+            "vertices": [[0, 0], [2, 0], [2, 0.5], [0, 0.5]]
+          },
+          "friction": 0.5
+        }
+      ]
+    }
+  ],
+  "toolbox": [
+    {
+      "name": "Ball",
+      "fixtures": [
+        {
+          "shape": {
+            "type": "circle",
+            "radius": 0.5
+          },
+          "density": 1,
+          "friction": 0.3,
+          "restitution": 0.6
+        }
+      ]
+    },
+    {
+      "name": "Box",
+      "fixtures": [
+        {
+          "shape": {
+            "type": "polygon",
+            "vertices": [[-0.5, -0.5], [0.5, -0.5], [0.5, 0.5], [-0.5, 0.5]]
+          },
+          "density": 1,
+          "friction": 0.4,
+          "restitution": 0.2
+        }
+      ]
+    },
+    {
+      "name": "HoverTriangle",
+      "fixtures": [
+        {
+          "shape": {
+            "type": "polygon",
+            "vertices": [[0, 0], [1, 0], [0.5, 1]]
+          },
+          "density": 0.8,
+          "friction": 0.3,
+          "restitution": 0.1
+        }
+      ]
+    }
+  ]
+}

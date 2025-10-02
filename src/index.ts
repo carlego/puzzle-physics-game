@@ -1,15 +1,9 @@
-import { Navbar } from "./components/Navbar";
-import { Toolbox } from "./components/Toolbox";
+import sceneData from "./components/Scene1.json";
 import { SimulationFrame } from "./components/SimulationFrame";
 import "./styles.css";
 
-const navbarContainer = document.getElementById("navbar")!;
-new Navbar(navbarContainer);
-
 const simContainer = document.getElementById("simulation")!;
-const sim = new SimulationFrame(simContainer);
+const sim = new SimulationFrame(simContainer, sceneData.toolbox);
 
-const toolboxContainer = document.getElementById("toolbox")!;
-new Toolbox(toolboxContainer, {
-  onReset: () => sim.reset()
-});
+// load static puzzle
+sim.loadScene(sceneData);

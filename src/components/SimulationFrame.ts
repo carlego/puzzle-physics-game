@@ -1,175 +1,116 @@
-import {
-  World,
-  Vec2,
-  Body,
-  Fixture,
-  Circle,
-  Box,
-  Edge,
-  Polygon
-} from "planck-js";
-
-export interface SimulationOptions {
-  width?: number;
-  height?: number;
-  scale?: number;
-}
+import planck, { World, Vec2, Polygon, Edge } from "planck-js";
+import { Toolbox } from "./Toolbox";
 
 export class SimulationFrame {
-  private container: HTMLElement;
-  private options: SimulationOptions;
+  private world: World;
   private canvas: HTMLCanvasElement;
   private ctx: CanvasRenderingContext2D;
-  private world!: World;
   private width: number;
   private height: number;
-  private scale: number;
+  private toolbox: Toolbox;
 
-  constructor(container: HTMLElement, options: SimulationOptions = {}) {
-    this.container = container;
-    this.options = options;
-
-    this.scale = options.scale || 30;
-    this.width = options.width || 600;
-    this.height = options.height || 400;
-
+  constructor(container: HTMLElement, toolboxItems: any[]) {
     this.canvas = document.createElement("canvas");
+    this.width = container.clientWidth || 600;
+    this.height = container.clientHeight || 400;
     this.canvas.width = this.width;
     this.canvas.height = this.height;
-    this.canvas.className = "simulation-frame";
+    container.appendChild(this.canvas);
 
-    this.container.appendChild(this.canvas);
-
-    const context = this.canvas.getContext("2d");
-    if (!context) throw new Error("Could not get canvas context");
-    this.ctx = context;
-
-    this.initWorld();
-    this.bindDrop();
-    this.run();
-  }
-
-  private initWorld() {
-    this.world = new World({ gravity: new Vec2(0, -10) });
-
+    this.ctx = this.canvas.getContext("2d")!;
+    this.world = new planck.World({ gravity: new planck.Vec2(0, -10) });
+    
     // Add ground
     const ground = this.world.createBody();
     ground.createFixture(new Edge(new Vec2(-20, 0), new Vec2(20, 0)), 0);
+
+    // Toolbox manages its own rendering + drag/drop
+    this.toolbox = new Toolbox(this.world, container, this.canvas, toolboxItems);
+
+    this.run();
   }
 
-  private bindDrop() {
-    this.canvas.addEventListener("dragover", e => e.preventDefault());
-    this.canvas.addEventListener("drop", e => {
-      e.preventDefault();
+  public loadScene(scene: any) {
+    scene.puzzle.forEach((obj: any) => this.createStaticBody(obj));
+  }
 
-      const rect = this.canvas.getBoundingClientRect();
-      const x = (e.clientX - rect.left) / this.scale;
-      const y = (this.height - (e.clientY - rect.top)) / this.scale;
-
-      const shape = e.dataTransfer?.getData("shape");
-      if (shape) this.spawnShape(shape, x, y);
+  private createStaticBody(obj: any) {
+    const body = this.world.createBody({
+      type: obj.body.type,
+      position: obj.body.position
+        ? new planck.Vec2(obj.body.position[0], obj.body.position[1])
+        : new planck.Vec2(0, 0),
     });
-  }
 
-  public spawnShape(shape: string, x: number, y: number) {
-    const body = this.world.createDynamicBody(new Vec2(x, y));
-
-    if (shape === "circle") {
-      body.createFixture(new Circle(0.5), { density: 1, friction: 0.3 });
-    } else if (shape === "square") {
-      body.createFixture(new Box(0.5, 0.5), { density: 1, friction: 0.3 });
-      body.setUserData({ type: "square" });
-    } else if (shape === "triangle") {
-      body.createFixture(new Polygon([
-        new Vec2(0, 0.6), new Vec2(-0.6, -0.6), Vec2(0.6, -0.6)
-      ]), { density: 1, friction: 0.3 });
-      body.setUserData({ type: "triangle" });
-    }
-  }
-
-  public reset() {
-    this.initWorld();
+    obj.fixtures.forEach((fix: any) => {
+      let shape: any;
+      if (fix.shape.type === "polygon") {
+        shape = new planck.Polygon(
+          fix.shape.vertices.map((v: [number, number]) => new planck.Vec2(...v))
+        );
+      } else if (fix.shape.type === "edge") {
+        const vertex1: [number, number] = fix.shape.vertex1;
+        let vertex2: [number, number] = fix.shape.vertex2
+        shape = new planck.Edge(
+          new planck.Vec2(vertex1[0], vertex1[1]),
+          new planck.Vec2(vertex2[0], vertex2[1]),
+        );
+      }
+      body.createFixture(shape, {
+        density: fix.density ?? 0,
+        friction: fix.friction ?? 0.3,
+      });
+    });
   }
 
   private run() {
     const step = () => {
-    const dt = 1 / 60;
-
-    // Apply non-Newtonian behavior for triangle
-    for (let b = this.world.getBodyList(); b; b = b.getNext()) {
-      const data = b.getUserData() as { type?: string } | undefined;
-      if (data?.type === "triangle") {
-        const vel = b.getLinearVelocity();
-        if (vel.y < 0) {
-          const k = 2.0; // tweak coefficient: higher = stronger slowdown
-          let upwardForce = -k * vel.y * vel.y;
-          upwardForce = Math.min(upwardForce, 100);
-          b.applyForce(new Vec2(0, upwardForce), b.getWorldCenter());
-        }
-      }
-
-      if (data?.type === "square") {
-        const pos = b.getPosition();
-        const vel = b.getLinearVelocity();
-
-        // where the triangle should hover
-        const targetY = 5;   // adjust as needed
-        const k = 20.0;      // spring stiffness
-        const d = 5.0;       // damping factor
-
-        // spring force toward target
-        const springForce = k * (targetY - pos.y);
-
-        // damping force against velocity
-        const dampingForce = -d * vel.y;
-
-        // total vertical force
-        const totalForce = springForce + dampingForce;
-
-        b.applyForce(new Vec2(0, totalForce), b.getWorldCenter());
-      }
-    }
-
-      this.world.step(dt);
-      this.ctx.clearRect(0, 0, this.width, this.height);
-
-      for (let b = this.world.getBodyList(); b; b = b.getNext()) {
-        for (let f = b.getFixtureList(); f; f = f.getNext()) {
-          this.renderShape(b, f);
-        }
-      }
-
+      this.world.step(1 / 60);
+      this.toolbox.update();
+      this.render();
       requestAnimationFrame(step);
     };
-    step();
+    requestAnimationFrame(step);
   }
 
-  private renderShape(body: Body, fixture: Fixture) {
-    const shape: any = fixture.getShape();
-    const pos = body.getPosition();
-    const angle = body.getAngle();
+  private render() {
+    this.ctx.clearRect(0, 0, this.width, this.height);
 
-    this.ctx.save();
-    this.ctx.translate(pos.x * this.scale, this.height - pos.y * this.scale);
-    this.ctx.rotate(-angle);
+    for (let b = this.world.getBodyList(); b; b = b.getNext()) {
+      const pos = b.getPosition();
+      const angle = b.getAngle();
 
-    if (shape.getType() === "circle") {
-      this.ctx.beginPath();
-      this.ctx.arc(0, 0, shape.m_radius * this.scale, 0, 2 * Math.PI);
-      this.ctx.fillStyle = "blue";
-      this.ctx.fill();
-    } else if (shape.getType() === "polygon") {
-      this.ctx.beginPath();
-      const vertices = shape.m_vertices;
-      this.ctx.moveTo(vertices[0].x * this.scale, -vertices[0].y * this.scale);
-      for (let i = 1; i < vertices.length; i++) {
-        this.ctx.lineTo(vertices[i].x * this.scale, -vertices[i].y * this.scale);
+      for (let f = b.getFixtureList(); f; f = f.getNext()) {
+        const shape: any = f.getShape();
+
+        this.ctx.save();
+        this.ctx.translate(pos.x * 30, this.height - pos.y * 30);
+        this.ctx.rotate(-angle);
+
+        if (shape.m_type === "circle") {
+          this.ctx.beginPath();
+          this.ctx.arc(0, 0, shape.m_radius * 30, 0, 2 * Math.PI);
+          this.ctx.stroke();
+        } else if (shape.m_type === "polygon") {
+          const verts = shape.m_vertices;
+          this.ctx.beginPath();
+          this.ctx.moveTo(verts[0].x * 30, -verts[0].y * 30);
+          verts.slice(1).forEach((v: any) =>
+            this.ctx.lineTo(v.x * 30, -v.y * 30)
+          );
+          this.ctx.closePath();
+          this.ctx.stroke();
+        } else if (shape.m_type === "edge") {
+          const v1 = shape.m_vertex1;
+          const v2 = shape.m_vertex2;
+          this.ctx.beginPath();
+          this.ctx.moveTo(v1.x * 30, -v1.y * 30);
+          this.ctx.lineTo(v2.x * 30, -v2.y * 30);
+          this.ctx.stroke();
+        }
+
+        this.ctx.restore();
       }
-      this.ctx.closePath();
-      this.ctx.fillStyle = "red";
-      this.ctx.fill();
     }
-
-    this.ctx.restore();
   }
 }
