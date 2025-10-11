@@ -1,4 +1,4 @@
-import planck, { World, Vec2, Polygon, Edge } from "planck-js";
+import { World, Vec2, Polygon, Edge, Circle, Body } from "planck-js";
 import { Toolbox } from "./Toolbox";
 import { WorldViewport } from "./WorldViewPort";
 
@@ -12,21 +12,28 @@ export class SimulationFrame {
   private toolbox: Toolbox;
   private viewport: WorldViewport;
   private SCALE = 30; // pixels per world unit
+  private goalBody: Body | null = null; 
+  private sceneData : any = null;
+  private isCleared = false;
+  private isPaused = false;
 
-  constructor(container: HTMLElement, toolboxItems: any[]) {
+  constructor(container: HTMLElement, toolboxItems: any[], sceneData: any) {
     this.canvas = document.createElement("canvas");
     this.width = container.clientWidth || 600;
     this.height = container.clientHeight || 400;
     this.canvas.width = this.width;
     this.canvas.height = this.height;
+    this.sceneData = sceneData;
     container.appendChild(this.canvas);
 
     this.canvasContext = this.canvas.getContext("2d")!;
     this.viewport = new WorldViewport(this.canvas, this.SCALE); 
     this.world = new World({ gravity: new Vec2(0, -10) });
     
-    // Add ground
     this.createWorldBounds();
+    this.createGoal();
+    this.setupContactListener();
+    this.loadScene();
 
     // Toolbox manages its own rendering + drag/drop
     this.toolbox = new Toolbox(this.world, container, this.canvas, toolboxItems);
@@ -34,8 +41,51 @@ export class SimulationFrame {
     this.run();
   }
 
-  public loadScene(scene: any) {
-    scene.puzzle.forEach((obj: any) => this.createStaticBody(obj));
+  private createGoal() {
+    const goalShape = new Circle(0.5); // 0.5m radius
+    this.goalBody = this.world.createBody({
+      type: "static",
+      position: new Vec2(10, 3), // place it wherever you want
+      userData: { isGoal: true },
+    });
+    this.goalBody.createFixture(goalShape, { density: 0, isSensor: true });
+  }
+
+  public loadScene() {
+    this.sceneData.puzzle.forEach((obj: any) => this.createStaticBody(obj));
+  }
+
+  private setupContactListener() {
+  this.world.on("begin-contact", (contact) => {
+    const fixtureA = contact.getFixtureA();
+    const fixtureB = contact.getFixtureB();
+
+    const bodyA = fixtureA.getBody();
+    const bodyB = fixtureB.getBody();
+
+    const aIsGoal = (bodyA.getUserData() as any)?.isGoal;
+    const bIsGoal = (bodyB.getUserData() as any)?.isGoal;
+
+    if (aIsGoal || bIsGoal) {
+      this.onGoalHit();
+    }
+  });
+}
+
+  private onGoalHit() {
+    if (this.isCleared) return;
+    this.isCleared = true;
+
+    // Stop physics updates
+    this.stopSimulation();
+
+    // Show "Cleared!" overlay
+    const overlay = document.createElement("div");
+    overlay.className = "cleared-overlay";
+    overlay.innerText = "Cleared!";
+    document.body.appendChild(overlay);
+
+    console.log("Goal reached!");
   }
 
   private createStaticBody(obj: any) {
@@ -46,7 +96,7 @@ export class SimulationFrame {
         : new Vec2(0, 0),
     });
 
-    obj.fixtures.forEach((fix: any) => {
+    obj.fixtures?.forEach((fix: any) => {
       let shape: any;
       if (fix.shape.type === "polygon") {
         shape = new Polygon(
@@ -67,65 +117,129 @@ export class SimulationFrame {
     });
   }
 
+  private animationFrameId: number | null = null; // track active loop
+
   private run() {
     const step = () => {
+      if (this.isPaused) return;
       this.world.step(1 / 60);
       this.toolbox.update();
       this.render();
-      requestAnimationFrame(step);
+      this.animationFrameId = requestAnimationFrame(step);
     };
-    requestAnimationFrame(step);
+    this.animationFrameId = requestAnimationFrame(step);
+  }
+
+  private stopSimulation() {
+    this.canvas.style.pointerEvents = "none";
+    this.isPaused = true;
+
+    // Stop animation frame
+    if (this.animationFrameId !== null) {
+      cancelAnimationFrame(this.animationFrameId);
+      this.animationFrameId = null;
+    }
+  }
+
+  private attachResetButton() {
+    const resetBtn = document.getElementById("reset-btn");
+    if (!resetBtn) return;
+
+    resetBtn.addEventListener("click", () => {
+      document.querySelector(".cleared-overlay")?.remove();
+
+      // Stop current loop before recreating world
+      if (this.animationFrameId !== null) {
+        cancelAnimationFrame(this.animationFrameId);
+        this.animationFrameId = null;
+      }
+
+      // Recreate world
+      this.world = new World(new Vec2(0, -10));
+
+      this.isCleared = false;
+      this.isPaused = false;
+      this.canvas.style.pointerEvents = "auto";
+
+      this.createWorldBounds();
+      this.createGoal();
+      this.setupContactListener();
+
+      this.toolbox.setWorld(this.world);
+
+      // Clear and restart loop
+      this.canvasContext.clearRect(0, 0, this.canvas.width, this.canvas.height);
+      this.loadScene();
+      this.run();
+
+      console.log("Simulation reset");
+    });
   }
 
   private render() {
-  const ctx = this.canvasContext;
-  ctx.clearRect(0, 0, this.width, this.height);
+    const ctx = this.canvasContext;
+    ctx.clearRect(0, 0, this.width, this.height);
 
-  for (let body = this.world.getBodyList(); body; body = body.getNext()) {
-    const pos = body.getPosition();
-    const angle = body.getAngle();
+    for (let body = this.world.getBodyList(); body; body = body.getNext()) {
+      const pos = body.getPosition();
+      const angle = body.getAngle();
+      const userData = body.getUserData() as any;
+      const isGoal = userData?.isGoal;
 
-    for (let fixture = body.getFixtureList(); fixture; fixture = fixture.getNext()) {
-      const shape: any = fixture.getShape();
-      ctx.save();
+      for (let fixture = body.getFixtureList(); fixture; fixture = fixture.getNext()) {
+        const shape: any = fixture.getShape();
 
-      // translate to world position in canvas space
-      const posCanvas = this.viewport.worldToCanvas(pos);
-      ctx.translate(posCanvas.x, posCanvas.y);
-      ctx.rotate(-angle);
+        ctx.save();
 
-      if (shape.m_type === "circle") {
-        ctx.beginPath();
-        ctx.arc(0, 0, this.viewport.lengthToCanvas(shape.m_radius), 0, 2 * Math.PI);
-        ctx.stroke();
+        const posCanvas = this.viewport.worldToCanvas(pos);
+        ctx.translate(posCanvas.x, posCanvas.y);
+        ctx.rotate(-angle);
 
-      } else if (shape.m_type === "polygon") {
-        const verts = shape.m_vertices.map((v: any) =>
-          this.viewport.lengthToCanvasVec(v)
-        );
+        if (shape.m_type === "circle") {
+          ctx.beginPath();
+          ctx.arc(0, 0, this.viewport.lengthToCanvas(shape.m_radius), 0, 2 * Math.PI);
 
-        ctx.beginPath();
-        ctx.moveTo(verts[0].x, -verts[0].y);
-        for (let i = 1; i < verts.length; i++) {
-          ctx.lineTo(verts[i].x, -verts[i].y);
+          if (isGoal) {
+            ctx.fillStyle = "lightgreen";
+            ctx.fill();
+          } else {
+            ctx.stroke();
+          }
+
+        } else if (shape.m_type === "polygon") {
+          const verts = shape.m_vertices.map((v: any) =>
+            this.viewport.lengthToCanvasVec(v)
+          );
+
+          ctx.beginPath();
+          ctx.moveTo(verts[0].x, -verts[0].y);
+          for (let i = 1; i < verts.length; i++) {
+            ctx.lineTo(verts[i].x, -verts[i].y);
+          }
+          ctx.closePath();
+
+          if (isGoal) {
+            ctx.fillStyle = "lightgreen";
+            ctx.fill();
+          } else {
+            ctx.stroke();
+          }
+
+        } else if (shape.m_type === "edge") {
+          const v1 = this.viewport.lengthToCanvasVec(shape.m_vertex1);
+          const v2 = this.viewport.lengthToCanvasVec(shape.m_vertex2);
+
+          ctx.beginPath();
+          ctx.moveTo(v1.x, -v1.y);
+          ctx.lineTo(v2.x, -v2.y);
+          ctx.stroke();
         }
-        ctx.closePath();
-        ctx.stroke();
 
-      } else if (shape.m_type === "edge") {
-        const v1 = this.viewport.lengthToCanvasVec(shape.m_vertex1);
-        const v2 = this.viewport.lengthToCanvasVec(shape.m_vertex2);
-
-        ctx.beginPath();
-        ctx.moveTo(v1.x, -v1.y);
-        ctx.lineTo(v2.x, -v2.y);
-        ctx.stroke();
+        ctx.restore();
       }
-
-      ctx.restore();
     }
   }
-}
+
 
   private createWorldBounds() {
     const worldWidth = this.viewport.lengthToWorld(this.canvas.width);
@@ -152,27 +266,4 @@ export class SimulationFrame {
       new Edge(new Vec2(worldWidth, -worldHeight), new Vec2(worldWidth, worldHeight))
     );
   }
-
-private attachResetButton() {
-  const resetBtn = document.getElementById("reset-btn");
-  if (!resetBtn) return;
-
-  resetBtn.addEventListener("click", () => {
-    // Destroy all existing bodies
-    let body = this.world.getBodyList();
-    while (body) {
-      const next = body.getNext();
-      this.world.destroyBody(body);
-      body = next;
-    }
-
-    // Recreate static boundaries (walls)
-    this.createWorldBounds();
-
-
-    console.log("✅ Simulation reset");
-  });
-}
-
-
 }

@@ -173,6 +173,10 @@ export class Toolbox {
     return body;
   }
 
+  public setWorld(world: World) {
+    this.world = world;
+}
+
   public update() {
     for (let b = this.world.getBodyList(); b; b = b.getNext()) {
       const data = b.getUserData() as any;
