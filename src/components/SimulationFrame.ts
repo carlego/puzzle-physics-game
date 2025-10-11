@@ -30,7 +30,7 @@ export class SimulationFrame {
 
     // Toolbox manages its own rendering + drag/drop
     this.toolbox = new Toolbox(this.world, container, this.canvas, toolboxItems);
-
+    this.attachResetButton(); 
     this.run();
   }
 
@@ -127,7 +127,6 @@ export class SimulationFrame {
   }
 }
 
-
   private createWorldBounds() {
     const worldWidth = this.viewport.lengthToWorld(this.canvas.width);
     const worldHeight = this.viewport.lengthToWorld(this.canvas.height);
@@ -153,5 +152,27 @@ export class SimulationFrame {
       new Edge(new Vec2(worldWidth, -worldHeight), new Vec2(worldWidth, worldHeight))
     );
   }
+
+private attachResetButton() {
+  const resetBtn = document.getElementById("reset-btn");
+  if (!resetBtn) return;
+
+  resetBtn.addEventListener("click", () => {
+    // Destroy all existing bodies
+    let body = this.world.getBodyList();
+    while (body) {
+      const next = body.getNext();
+      this.world.destroyBody(body);
+      body = next;
+    }
+
+    // Recreate static boundaries (walls)
+    this.createWorldBounds();
+
+
+    console.log("✅ Simulation reset");
+  });
+}
+
 
 }
