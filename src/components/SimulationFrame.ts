@@ -1,13 +1,17 @@
 import planck, { World, Vec2, Polygon, Edge } from "planck-js";
 import { Toolbox } from "./Toolbox";
+import { WorldViewport } from "./WorldViewPort";
+
 
 export class SimulationFrame {
   private world: World;
   private canvas: HTMLCanvasElement;
-  private ctx: CanvasRenderingContext2D;
+  private canvasContext: CanvasRenderingContext2D;
   private width: number;
   private height: number;
   private toolbox: Toolbox;
+  private viewport: WorldViewport;
+  private SCALE = 30; // pixels per world unit
 
   constructor(container: HTMLElement, toolboxItems: any[]) {
     this.canvas = document.createElement("canvas");
@@ -17,12 +21,12 @@ export class SimulationFrame {
     this.canvas.height = this.height;
     container.appendChild(this.canvas);
 
-    this.ctx = this.canvas.getContext("2d")!;
-    this.world = new planck.World({ gravity: new planck.Vec2(0, -10) });
+    this.canvasContext = this.canvas.getContext("2d")!;
+    this.viewport = new WorldViewport(this.canvas, this.SCALE); 
+    this.world = new World({ gravity: new Vec2(0, -10) });
     
     // Add ground
-    const ground = this.world.createBody();
-    ground.createFixture(new Edge(new Vec2(-20, 0), new Vec2(20, 0)), 0);
+    this.createWorldBounds();
 
     // Toolbox manages its own rendering + drag/drop
     this.toolbox = new Toolbox(this.world, container, this.canvas, toolboxItems);
@@ -38,22 +42,22 @@ export class SimulationFrame {
     const body = this.world.createBody({
       type: obj.body.type,
       position: obj.body.position
-        ? new planck.Vec2(obj.body.position[0], obj.body.position[1])
-        : new planck.Vec2(0, 0),
+        ? new Vec2(obj.body.position[0], obj.body.position[1])
+        : new Vec2(0, 0),
     });
 
     obj.fixtures.forEach((fix: any) => {
       let shape: any;
       if (fix.shape.type === "polygon") {
-        shape = new planck.Polygon(
-          fix.shape.vertices.map((v: [number, number]) => new planck.Vec2(...v))
+        shape = new Polygon(
+          fix.shape.vertices.map((v: [number, number]) => new Vec2(...v))
         );
       } else if (fix.shape.type === "edge") {
         const vertex1: [number, number] = fix.shape.vertex1;
         let vertex2: [number, number] = fix.shape.vertex2
-        shape = new planck.Edge(
-          new planck.Vec2(vertex1[0], vertex1[1]),
-          new planck.Vec2(vertex2[0], vertex2[1]),
+        shape = new Edge(
+          new Vec2(vertex1[0], vertex1[1]),
+          new Vec2(vertex2[0], vertex2[1]),
         );
       }
       body.createFixture(shape, {
@@ -74,43 +78,80 @@ export class SimulationFrame {
   }
 
   private render() {
-    this.ctx.clearRect(0, 0, this.width, this.height);
+  const ctx = this.canvasContext;
+  ctx.clearRect(0, 0, this.width, this.height);
 
-    for (let b = this.world.getBodyList(); b; b = b.getNext()) {
-      const pos = b.getPosition();
-      const angle = b.getAngle();
+  for (let body = this.world.getBodyList(); body; body = body.getNext()) {
+    const pos = body.getPosition();
+    const angle = body.getAngle();
 
-      for (let f = b.getFixtureList(); f; f = f.getNext()) {
-        const shape: any = f.getShape();
+    for (let fixture = body.getFixtureList(); fixture; fixture = fixture.getNext()) {
+      const shape: any = fixture.getShape();
+      ctx.save();
 
-        this.ctx.save();
-        this.ctx.translate(pos.x * 30, this.height - pos.y * 30);
-        this.ctx.rotate(-angle);
+      // translate to world position in canvas space
+      const posCanvas = this.viewport.worldToCanvas(pos);
+      ctx.translate(posCanvas.x, posCanvas.y);
+      ctx.rotate(-angle);
 
-        if (shape.m_type === "circle") {
-          this.ctx.beginPath();
-          this.ctx.arc(0, 0, shape.m_radius * 30, 0, 2 * Math.PI);
-          this.ctx.stroke();
-        } else if (shape.m_type === "polygon") {
-          const verts = shape.m_vertices;
-          this.ctx.beginPath();
-          this.ctx.moveTo(verts[0].x * 30, -verts[0].y * 30);
-          verts.slice(1).forEach((v: any) =>
-            this.ctx.lineTo(v.x * 30, -v.y * 30)
-          );
-          this.ctx.closePath();
-          this.ctx.stroke();
-        } else if (shape.m_type === "edge") {
-          const v1 = shape.m_vertex1;
-          const v2 = shape.m_vertex2;
-          this.ctx.beginPath();
-          this.ctx.moveTo(v1.x * 30, -v1.y * 30);
-          this.ctx.lineTo(v2.x * 30, -v2.y * 30);
-          this.ctx.stroke();
+      if (shape.m_type === "circle") {
+        ctx.beginPath();
+        ctx.arc(0, 0, this.viewport.lengthToCanvas(shape.m_radius), 0, 2 * Math.PI);
+        ctx.stroke();
+
+      } else if (shape.m_type === "polygon") {
+        const verts = shape.m_vertices.map((v: any) =>
+          this.viewport.lengthToCanvasVec(v)
+        );
+
+        ctx.beginPath();
+        ctx.moveTo(verts[0].x, -verts[0].y);
+        for (let i = 1; i < verts.length; i++) {
+          ctx.lineTo(verts[i].x, -verts[i].y);
         }
+        ctx.closePath();
+        ctx.stroke();
 
-        this.ctx.restore();
+      } else if (shape.m_type === "edge") {
+        const v1 = this.viewport.lengthToCanvasVec(shape.m_vertex1);
+        const v2 = this.viewport.lengthToCanvasVec(shape.m_vertex2);
+
+        ctx.beginPath();
+        ctx.moveTo(v1.x, -v1.y);
+        ctx.lineTo(v2.x, -v2.y);
+        ctx.stroke();
       }
+
+      ctx.restore();
     }
   }
+}
+
+
+  private createWorldBounds() {
+    const worldWidth = this.viewport.lengthToWorld(this.canvas.width);
+    const worldHeight = this.viewport.lengthToWorld(this.canvas.height);
+
+    const ground = this.world.createBody();
+
+    /// Create a box around the edges
+    // Bottom Edge
+    ground.createFixture(
+      new Edge(new Vec2(0, 0), new Vec2(worldWidth, 0))
+    );
+    // Top Edge
+    ground.createFixture(
+      new Edge(new Vec2(-worldWidth, worldHeight), new Vec2(worldWidth, worldHeight))
+    );
+
+    // Left Edge
+    ground.createFixture(
+      new Edge(new Vec2(0, 0), new Vec2(0, worldHeight))
+    );
+    // Right Edge
+    ground.createFixture(
+      new Edge(new Vec2(worldWidth, -worldHeight), new Vec2(worldWidth, worldHeight))
+    );
+  }
+
 }

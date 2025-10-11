@@ -63,43 +63,6 @@ export class Toolbox {
 
   }
 
-  /**
-   * Draws a miniature preview of a tool item
-   */
-  private drawThumbnail(
-    ctx: CanvasRenderingContext2D,
-    item: ToolboxItemDef,
-    w: number,
-    h: number
-  ) {
-    const previewWorld = new planck.World();
-    const body = previewWorld.createBody();
-
-    item.fixtures.forEach((fix: any) => {
-    let shape: any;
-    switch (fix.shape.type) {
-        case "circle":
-        shape = new planck.Circle(fix.shape.radius);
-        break;
-        case "polygon":
-        shape = new planck.Polygon(
-            fix.shape.vertices.map((v: [number, number]) => new planck.Vec2(v[0], v[1]))
-        );
-        break;
-        // edge / chain could go here too if needed
-    }
-    body.createFixture(shape, fix);
-    });
-
-    ctx.save();
-    ctx.translate(w / 2, h / 2);
-    const thumbScale = 20; // smaller than sim scale
-    for (let f = body.getFixtureList(); f; f = f.getNext()) {
-    drawFixture(ctx, f, thumbScale);
-    }
-    ctx.restore();
-  }
-
   private attachCanvasDropEvents() {
     this.canvas.addEventListener("dragover", (e) => {
       e.preventDefault();
@@ -117,8 +80,6 @@ export class Toolbox {
       this.currentDragItem = null;
     });
   }
-
-  
 
   private makePreviewCanvas(item: ToolboxItemDef): HTMLCanvasElement {
     const SIM_SCALE = 30; // must match SimulationFrame scale

@@ -4,17 +4,7 @@
       "body": {
         "type": "static",
         "position": [0, 0]
-      },
-      "fixtures": [
-        {
-          "shape": {
-            "type": "edge",
-            "vertex1": [-10, 0],
-            "vertex2": [10, 0]
-          },
-          "friction": 0.6
-        }
-      ]
+      }
     },
     {
       "body": {
