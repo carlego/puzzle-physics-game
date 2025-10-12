@@ -16,6 +16,7 @@ export class SimulationFrame {
   private sceneData : any = null;
   private isCleared = false;
   private isPaused = false;
+  private resetCount = 0;
 
   constructor(container: HTMLElement, toolboxItems: any[], sceneData: any) {
     this.canvas = document.createElement("canvas");
@@ -78,11 +79,20 @@ export class SimulationFrame {
 
     // Stop physics updates
     this.stopSimulation();
-
-    // Show "Cleared!" overlay
     const overlay = document.createElement("div");
     overlay.className = "cleared-overlay";
-    overlay.innerText = "Cleared!";
+
+    const lastDrop = this.toolbox.getLastDropPosition();
+    const coordsText = lastDrop
+      ? `Drop position: X=${lastDrop.x.toFixed(2)} m, Y=${lastDrop.y.toFixed(2)} m`
+      : "Drop position: N/A";
+
+    overlay.innerHTML = `
+      <h2>Cleared!</h2>
+      <p>${coordsText}</p>
+      <p>Attempts: ${this.resetCount}</p>
+    `;
+
     document.body.appendChild(overlay);
 
     console.log("Goal reached!");
@@ -147,7 +157,7 @@ export class SimulationFrame {
 
     resetBtn.addEventListener("click", () => {
       document.querySelector(".cleared-overlay")?.remove();
-
+      this.resetCount++;
       // Stop current loop before recreating world
       if (this.animationFrameId !== null) {
         cancelAnimationFrame(this.animationFrameId);

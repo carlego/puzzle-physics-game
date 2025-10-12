@@ -13,6 +13,8 @@ export class Toolbox {
   private items: ToolboxItemDef[];
   private canvas: HTMLCanvasElement;
   private currentDragItem: ToolboxItemDef | null = null;
+  private hasSpawned = false;
+  private lastDropPosition: { x: number; y: number } | null = null;
 
   constructor(
     world: World,
@@ -37,30 +39,33 @@ export class Toolbox {
     this.toolboxDiv.innerHTML = ""; // clear toolbox
 
     this.items.forEach((item) => {
-  const wrapper = document.createElement("div");
-  wrapper.className = "toolbox-item";
-  wrapper.draggable = true;
+      const wrapper = document.createElement("div");
+      wrapper.className = "toolbox-item";
+      wrapper.draggable = true;
 
-  // Use fixed-size preview
-  const thumbCanvas = this.makePreviewCanvas(item);
-  wrapper.appendChild(thumbCanvas);
+      // Use fixed-size preview
+      const thumbCanvas = this.makePreviewCanvas(item);
+      wrapper.appendChild(thumbCanvas);
 
-  wrapper.addEventListener("dragstart", (e: DragEvent) => {
-    this.currentDragItem = item;
-    if (e.dataTransfer) {
-      // Drag image is the thumbnail itself
-      // TODO: Firefox actually shrinks the image a bit here. Need to figure out how to set fixed size.
-      e.dataTransfer.setDragImage(
-        thumbCanvas,
-        thumbCanvas.width / 2,
-        thumbCanvas.height / 2
-      );
-    }
-  });
+       wrapper.addEventListener("dragstart", (e: DragEvent) => {
+        // if user already spawned, don’t let them drag again
+        if (this.hasSpawned) {
+          e.preventDefault();
+          return;
+        }
 
-  this.toolboxDiv.appendChild(wrapper);
-});
+        this.currentDragItem = item;
+        if (e.dataTransfer) {
+          e.dataTransfer.setDragImage(
+            thumbCanvas,
+            thumbCanvas.width / 2,
+            thumbCanvas.height / 2
+          );
+        }
+      });
 
+      this.toolboxDiv.appendChild(wrapper);
+    });
   }
 
   private attachCanvasDropEvents() {
@@ -70,13 +75,17 @@ export class Toolbox {
 
     this.canvas.addEventListener("drop", (e) => {
       e.preventDefault();
-      if (!this.currentDragItem) return;
+      if (!this.currentDragItem || this.hasSpawned) return;
 
       const rect = this.canvas.getBoundingClientRect();
       const x = (e.clientX - rect.left) / 30;
       const y = (rect.bottom - e.clientY) / 30;
 
       this.spawnItem(this.currentDragItem, x, y);
+      this.currentDragItem = null;
+      // mark as spawned & record position
+      this.hasSpawned = true;
+      this.lastDropPosition = { x, y };
       this.currentDragItem = null;
     });
   }
@@ -175,7 +184,13 @@ export class Toolbox {
 
   public setWorld(world: World) {
     this.world = world;
-}
+    this.hasSpawned = false;
+    this.lastDropPosition = null;
+  }
+
+  public getLastDropPosition() {
+    return this.lastDropPosition;
+  }
 
   public update() {
     for (let b = this.world.getBodyList(); b; b = b.getNext()) {
