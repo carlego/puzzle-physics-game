@@ -3,8 +3,21 @@
     {
       "body": {
         "type": "static",
-        "position": [0, 0]
-      }
+        "position": [18, 0],
+        "userData": {
+          "isGoal": true
+        }
+      },
+      "fixtures": [
+        {
+          "shape": {
+            "type": "polygon",
+            "vertices": [[0, 0], [2  , 0], [2, 2], [0, 2]]
+          },
+          "friction": 0.5,
+          "isSensor": true
+        }
+      ]
     },
     {
       "body": {

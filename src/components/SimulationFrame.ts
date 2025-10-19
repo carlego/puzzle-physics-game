@@ -12,7 +12,7 @@ export class SimulationFrame {
   private toolbox: Toolbox;
   private viewport: WorldViewport;
   private SCALE = 30; // pixels per world unit
-  private goalBody: Body | null = null; 
+
   private sceneData : any = null;
   private isCleared = false;
   private isPaused = false;
@@ -32,7 +32,6 @@ export class SimulationFrame {
     this.world = new World({ gravity: new Vec2(0, -10) });
     
     this.createWorldBounds();
-    this.createGoal();
     this.setupContactListener();
     this.loadScene();
 
@@ -40,16 +39,6 @@ export class SimulationFrame {
     this.toolbox = new Toolbox(this.world, container, this.canvas, toolboxItems);
     this.attachResetButton(); 
     this.run();
-  }
-
-  private createGoal() {
-    const goalShape = new Circle(0.5); // 0.5m radius
-    this.goalBody = this.world.createBody({
-      type: "static",
-      position: new Vec2(10, 3), // place it wherever you want
-      userData: { isGoal: true },
-    });
-    this.goalBody.createFixture(goalShape, { density: 0, isSensor: true });
   }
 
   public loadScene() {
@@ -104,6 +93,7 @@ export class SimulationFrame {
       position: obj.body.position
         ? new Vec2(obj.body.position[0], obj.body.position[1])
         : new Vec2(0, 0),
+      userData: obj.body.userData || {},
     });
 
     obj.fixtures?.forEach((fix: any) => {
@@ -123,6 +113,7 @@ export class SimulationFrame {
       body.createFixture(shape, {
         density: fix.density ?? 0,
         friction: fix.friction ?? 0.3,
+        isSensor: fix.isSensor ?? false,
       });
     });
   }
@@ -172,7 +163,6 @@ export class SimulationFrame {
       this.canvas.style.pointerEvents = "auto";
 
       this.createWorldBounds();
-      this.createGoal();
       this.setupContactListener();
 
       this.toolbox.setWorld(this.world);
