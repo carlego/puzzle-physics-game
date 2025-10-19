@@ -45,7 +45,7 @@
   left: 50%;
   transform: translate(-50%, -50%);
   font-size: 3rem;
-  color: #22c55e; /* green */
+  color: lightgreen;
   font-weight: bold;
   background: rgba(255, 255, 255, 0.8);
   padding: 20px 40px;

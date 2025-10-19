@@ -12,7 +12,6 @@ export class SimulationFrame {
   private toolbox: Toolbox;
   private viewport: WorldViewport;
   private SCALE = 30; // pixels per world unit
-
   private sceneData : any = null;
   private isCleared = false;
   private isPaused = false;
@@ -198,14 +197,6 @@ export class SimulationFrame {
         if (shape.m_type === "circle") {
           ctx.beginPath();
           ctx.arc(0, 0, this.viewport.lengthToCanvas(shape.m_radius), 0, 2 * Math.PI);
-
-          if (isGoal) {
-            ctx.fillStyle = "lightgreen";
-            ctx.fill();
-          } else {
-            ctx.stroke();
-          }
-
         } else if (shape.m_type === "polygon") {
           const verts = shape.m_vertices.map((v: any) =>
             this.viewport.lengthToCanvasVec(v)
@@ -218,13 +209,6 @@ export class SimulationFrame {
           }
           ctx.closePath();
 
-          if (isGoal) {
-            ctx.fillStyle = "lightgreen";
-            ctx.fill();
-          } else {
-            ctx.stroke();
-          }
-
         } else if (shape.m_type === "edge") {
           const v1 = this.viewport.lengthToCanvasVec(shape.m_vertex1);
           const v2 = this.viewport.lengthToCanvasVec(shape.m_vertex2);
@@ -234,6 +218,13 @@ export class SimulationFrame {
           ctx.lineTo(v2.x, -v2.y);
           ctx.stroke();
         }
+
+        if (isGoal) {
+            ctx.fillStyle = "lightgreen";
+            ctx.fill();
+          } else {
+            ctx.stroke();
+          }
 
         ctx.restore();
       }
