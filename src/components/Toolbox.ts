@@ -27,10 +27,7 @@ export class Toolbox {
     this.items = items;
     this.canvas = canvas;
 
-    this.toolboxDiv = document.createElement("div");
-    this.toolboxDiv.className = "toolbox";
-    this.container.parentElement?.appendChild(this.toolboxDiv);
-
+    this.toolboxDiv = document.getElementById("toolbox")!;
     this.render();
     this.attachCanvasDropEvents();
   }
