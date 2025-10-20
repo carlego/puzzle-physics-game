@@ -1,4 +1,4 @@
-import { World, Vec2, Polygon, Edge, Circle, Body } from "planck-js";
+import { World, Vec2, Polygon, Edge, } from "planck-js";
 import { Toolbox } from "./Toolbox";
 import { WorldViewport } from "./WorldViewPort";
 
@@ -20,7 +20,7 @@ export class SimulationFrame {
   constructor(container: HTMLElement, toolboxItems: any[], sceneData: any) {
     this.canvas = document.createElement("canvas");
     this.width = container.clientWidth || 600;
-    this.height = container.clientHeight || 400;
+    this.height = container.clientHeight || 500;
     this.canvas.width = this.width;
     this.canvas.height = this.height;
     this.sceneData = sceneData;

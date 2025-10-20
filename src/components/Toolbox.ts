@@ -1,4 +1,4 @@
-import planck, { World, Vec2, Body, Shape } from "planck-js";
+import planck, { World, Body, Shape } from "planck-js";
 import { drawFixture } from "./utils/drawFixture";
 
 interface ToolboxItemDef {
@@ -176,7 +176,11 @@ export class Toolbox {
     });
 
     if (item.name === "HoverTriangle") {
-      body.setUserData({ type: "hover-triangle" });
+      body.setUserData({ 
+        type: "hover-triangle",
+        spawnTime: performance.now(),
+      });
+
     }
 
     return body;
@@ -193,14 +197,19 @@ export class Toolbox {
   }
 
   public update() {
+    const now = performance.now();
+
+
     for (let b = this.world.getBodyList(); b; b = b.getNext()) {
       const data = b.getUserData() as any;
       if (data?.type === "hover-triangle") {
-        const vel = b.getLinearVelocity();
-        const correctiveForce = vel.clone().neg();
-        correctiveForce.mul(0.5 * vel.length());
-        b.applyForceToCenter(correctiveForce);
+        const elapsed = (now - data.spawnTime) / 1000;
+        if (elapsed > 0.6 && elapsed < 2.0) {
+          const upwardForce = new planck.Vec2(0, 20 * b.getMass());
+          b.applyForceToCenter(upwardForce);
+        }
       }
+
     }
   }
 }
