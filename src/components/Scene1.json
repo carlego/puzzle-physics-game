@@ -63,6 +63,22 @@
           "friction": 0.5
         }
       ]
+    },
+    {
+      "body": {
+        "type": "static",
+        "position": [8, 0],
+        "userData": { "isRestrictedZone": true }
+      },
+      "fixtures": [
+        {
+          "shape": {
+            "type": "polygon",
+            "vertices": [[0, 0], [15, 0], [15, 20], [0, 20]]
+          },
+          "isSensor": true
+        }
+      ]
     }
   ],
   "toolbox": [

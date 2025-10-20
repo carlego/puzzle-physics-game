@@ -53,6 +53,7 @@ export function drawFixture(
       break;
     }
   }
-
+  ctx.fillStyle = "white";
+  ctx.fill();
   ctx.stroke();
 }

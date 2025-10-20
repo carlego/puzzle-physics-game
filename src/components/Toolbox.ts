@@ -1,4 +1,4 @@
-import planck, { World, Body, Shape } from "planck-js";
+import planck, { World, Body, Shape, Vec2 } from "planck-js";
 import { drawFixture } from "./utils/drawFixture";
 
 interface ToolboxItemDef {
@@ -68,6 +68,23 @@ export class Toolbox {
     });
   }
 
+  private isInRestrictedZone(point: planck.Vec2): boolean {
+    const zones = this.getRestrictedZones();
+
+    for (const body of zones) {
+      for (let fixture = body.getFixtureList(); fixture; fixture = fixture.getNext()) {
+        const shape = fixture.getShape();
+
+        // Planck testPoint requires the fixture’s transform
+        if (fixture.testPoint(point)) {
+          return true;
+        }
+      }
+    }
+
+    return false;
+  }
+
   private attachCanvasDropEvents() {
     this.canvas.addEventListener("dragover", (e) => {
       e.preventDefault();
@@ -80,6 +97,13 @@ export class Toolbox {
       const rect = this.canvas.getBoundingClientRect();
       const x = (e.clientX - rect.left) / 30;
       const y = (rect.bottom - e.clientY) / 30;
+      const dropPoint = new Vec2(x, y);
+
+      if (this.isInRestrictedZone(dropPoint)) {
+      console.log("Drop blocked inside restricted zone");
+      this.currentDragItem = null;
+      return;
+    }
 
       this.spawnItem(this.currentDragItem, x, y);
       this.currentDragItem = null;
@@ -88,6 +112,15 @@ export class Toolbox {
       this.lastDropPosition = { x, y };
       this.currentDragItem = null;
     });
+  }
+
+  private getRestrictedZones(): Body[] {
+    const zones: any = [];
+    for (let body = this.world.getBodyList(); body; body = body.getNext()) {
+      const userData = body.getUserData() as any;
+      if (userData?.isRestrictedZone) zones.push(body);
+    }
+    return zones;
   }
 
   private makePreviewCanvas(item: ToolboxItemDef): HTMLCanvasElement {
@@ -180,7 +213,6 @@ export class Toolbox {
         type: "hover-triangle",
         spawnTime: performance.now(),
       });
-
     }
 
     return body;

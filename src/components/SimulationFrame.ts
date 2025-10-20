@@ -16,6 +16,8 @@ export class SimulationFrame {
   private isCleared = false;
   private isPaused = false;
   private resetCount = 0;
+  private animationFrameId: number | null = null; // track active loop
+
 
   constructor(container: HTMLElement, toolboxItems: any[], sceneData: any) {
     this.canvas = document.createElement("canvas");
@@ -117,8 +119,6 @@ export class SimulationFrame {
     });
   }
 
-  private animationFrameId: number | null = null; // track active loop
-
   private run() {
     const step = () => {
       if (this.isPaused) return;
@@ -177,13 +177,25 @@ export class SimulationFrame {
 
   private render() {
     const ctx = this.canvasContext;
-    ctx.clearRect(0, 0, this.width, this.height);
+    ctx.clearRect(0, 0, this.width, this.height); 
+    // Pass 1: Draw restricted zones first (background)
+    this.drawBodies((body) => (body.getUserData() as any)?.isRestrictedZone);
+
+  // Pass 2: Draw everything else (foreground)
+    this.drawBodies((body) => !(body.getUserData() as any)?.isRestrictedZone);
+    
+  }
+
+  private drawBodies(filterFn: (b: any) => boolean) {
+    const ctx = this.canvasContext;
 
     for (let body = this.world.getBodyList(); body; body = body.getNext()) {
+      if (!filterFn(body)) continue;
       const pos = body.getPosition();
       const angle = body.getAngle();
       const userData = body.getUserData() as any;
       const isGoal = userData?.isGoal;
+      const isRestrictedZone = userData?.isRestrictedZone;
 
       for (let fixture = body.getFixtureList(); fixture; fixture = fixture.getNext()) {
         const shape: any = fixture.getShape();
@@ -220,12 +232,16 @@ export class SimulationFrame {
         }
 
         if (isGoal) {
-            ctx.fillStyle = "lightgreen";
-            ctx.fill();
-          } else {
-            ctx.stroke();
-          }
-
+          ctx.fillStyle = "lightgreen";
+          ctx.fill();
+        } else if (isRestrictedZone) {
+          ctx.fillStyle = "rgba(255, 0, 0, 0.2)";
+          ctx.fill();
+        } else {
+          ctx.fillStyle = "white";
+          ctx.fill();
+          ctx.stroke();
+        }
         ctx.restore();
       }
     }
