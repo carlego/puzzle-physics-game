@@ -1,6 +1,7 @@
 import { World, Vec2, Polygon, Edge, } from "planck-js";
 import { Toolbox } from "./Toolbox";
 import { WorldViewport } from "./WorldViewPort";
+import { Game } from "./Game";
 
 
 export class SimulationFrame {
@@ -11,6 +12,7 @@ export class SimulationFrame {
   private height: number;
   private toolbox: Toolbox;
   private viewport: WorldViewport;
+  private game: Game;
   private SCALE = 30; // pixels per world unit
   private sceneData : any = null;
   private isCleared = false;
@@ -36,8 +38,9 @@ export class SimulationFrame {
     this.setupContactListener();
     this.loadScene();
 
+    this.game = new Game(sceneData.puzzleName);
     // Toolbox manages its own rendering + drag/drop
-    this.toolbox = new Toolbox(this.world, container, this.canvas, toolboxItems);
+    this.toolbox = new Toolbox(this.world, container, this.canvas, toolboxItems, this.game);
     this.attachResetButton(); 
     this.run();
   }
@@ -73,18 +76,19 @@ export class SimulationFrame {
     overlay.className = "cleared-overlay";
 
     const lastDrop = this.toolbox.getLastDropPosition();
+    this.game.endCurrentAttempt(true);
+
     const coordsText = lastDrop
       ? `Drop position: X=${lastDrop.x.toFixed(2)} m, Y=${lastDrop.y.toFixed(2)} m`
       : "Drop position: N/A";
 
     overlay.innerHTML = `
       <h2>Cleared!</h2>
-      <p>${coordsText}</p>
-      <p>Attempts: ${this.resetCount}</p>
+      <p>${this.game.exportToHTMLTable()}</p>
+      <p>Total Attempts: ${this.game.getAttemptsCount()}</p>
     `;
 
     document.body.appendChild(overlay);
-
     console.log("Goal reached!");
   }
 
@@ -170,6 +174,9 @@ export class SimulationFrame {
       this.canvasContext.clearRect(0, 0, this.canvas.width, this.canvas.height);
       this.loadScene();
       this.run();
+
+      // Reset game attempts
+      this.game.endCurrentAttempt(false);
 
       console.log("Simulation reset");
     });

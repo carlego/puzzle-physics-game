@@ -1,5 +1,6 @@
 import planck, { World, Body, Shape, Vec2 } from "planck-js";
 import { drawFixture } from "./utils/drawFixture";
+import { Game } from "./Game";
 
 interface ToolboxItemDef {
   name: string;
@@ -15,17 +16,20 @@ export class Toolbox {
   private currentDragItem: ToolboxItemDef | null = null;
   private hasSpawned = false;
   private lastDropPosition: { x: number; y: number } | null = null;
+  private game: Game;
 
   constructor(
     world: World,
     container: HTMLElement,
     canvas: HTMLCanvasElement,
-    items: ToolboxItemDef[]
+    items: ToolboxItemDef[],
+    game: Game,
   ) {
     this.world = world;
     this.container = container;
     this.items = items;
     this.canvas = canvas;
+    this.game = game;
 
     this.toolboxDiv = document.getElementById("toolbox")!;
     this.render();
@@ -176,6 +180,7 @@ export class Toolbox {
 
 
   private spawnItem(item: ToolboxItemDef, x: number, y: number): Body {
+    this.game.startNewAttempt(x, y, item.name);
     const body = this.world.createBody({
       type: "dynamic",
       position: new planck.Vec2(x, y),
