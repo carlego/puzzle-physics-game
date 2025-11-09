@@ -3,6 +3,12 @@ import { Toolbox } from "./Toolbox";
 import { WorldViewport } from "./WorldViewPort";
 import { Game } from "./Game";
 
+type SimulationFrameOptions = {
+  container: HTMLElement;
+  toolboxItems: any[];
+  puzzleName: string;
+  puzzleData: any;
+};
 
 export class SimulationFrame {
   private world: World;
@@ -14,20 +20,25 @@ export class SimulationFrame {
   private viewport: WorldViewport;
   private game: Game;
   private SCALE = 30; // pixels per world unit
-  private sceneData : any = null;
+  private puzzleData : any = null;
   private isCleared = false;
   private isPaused = false;
   private resetCount = 0;
   private animationFrameId: number | null = null; // track active loop
+  private puzzleName: string;
+  private container: HTMLElement;
 
 
-  constructor(container: HTMLElement, toolboxItems: any[], sceneData: any) {
+  constructor({container, toolboxItems, puzzleName, puzzleData} : SimulationFrameOptions) {
     this.canvas = document.createElement("canvas");
     this.width = container.clientWidth || 600;
     this.height = container.clientHeight || 500;
     this.canvas.width = this.width;
     this.canvas.height = this.height;
-    this.sceneData = sceneData;
+    this.puzzleData = puzzleData;
+    this.puzzleName = puzzleName;
+    this.container = container;
+
     container.appendChild(this.canvas);
 
     this.canvasContext = this.canvas.getContext("2d")!;
@@ -38,7 +49,7 @@ export class SimulationFrame {
     this.setupContactListener();
     this.loadScene();
 
-    this.game = new Game(sceneData.puzzleName);
+    this.game = new Game(this.puzzleName);
     // Toolbox manages its own rendering + drag/drop
     this.toolbox = new Toolbox(this.world, container, this.canvas, toolboxItems, this.game);
     this.attachResetButton(); 
@@ -46,7 +57,7 @@ export class SimulationFrame {
   }
 
   public loadScene() {
-    this.sceneData.puzzle.forEach((obj: any) => this.createStaticBody(obj));
+    this.puzzleData.puzzle.forEach((obj: any) => this.createStaticBody(obj));
   }
 
   private setupContactListener() {
@@ -78,17 +89,13 @@ export class SimulationFrame {
     const lastDrop = this.toolbox.getLastDropPosition();
     this.game.endCurrentAttempt(true);
 
-    const coordsText = lastDrop
-      ? `Drop position: X=${lastDrop.x.toFixed(2)} m, Y=${lastDrop.y.toFixed(2)} m`
-      : "Drop position: N/A";
-
     overlay.innerHTML = `
       <h2>Cleared!</h2>
       <p>${this.game.exportToHTMLTable()}</p>
       <p>Total Attempts: ${this.game.getAttemptsCount()}</p>
     `;
 
-    document.body.appendChild(overlay);
+    this.container.appendChild(overlay);
     console.log("Goal reached!");
   }
 

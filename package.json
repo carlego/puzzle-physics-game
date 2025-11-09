@@ -12,6 +12,7 @@
     "build": "webpack --config webpack.config.ts"
   },
   "dependencies": {
+    "navigo": "^8.11.1",
     "planck-js": "^1.3.0"
   },
   "devDependencies": {
