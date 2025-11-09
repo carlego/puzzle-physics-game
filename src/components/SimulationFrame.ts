@@ -86,18 +86,39 @@ export class SimulationFrame {
     const overlay = document.createElement("div");
     overlay.className = "cleared-overlay";
 
-    const lastDrop = this.toolbox.getLastDropPosition();
     this.game.endCurrentAttempt(true);
 
     overlay.innerHTML = `
       <h2>Cleared!</h2>
       <p>${this.game.exportToHTMLTable()}</p>
       <p>Total Attempts: ${this.game.getAttemptsCount()}</p>
-    `;
-
+      <button id="download-results-btn">Download Results</button>
+    `;    
     this.container.appendChild(overlay);
+    
+    const downloadBtn = overlay.querySelector("#download-results-btn")!;
+    downloadBtn.addEventListener("click", () => {
+      const csvData = this.game.exportAttemptsToCSV();
+      this.downloadCSV(csvData);
+    });
+
     console.log("Goal reached!");
   }
+
+  private downloadCSV(csvContent: any, filename = "data.csv") {
+  if (!csvContent) throw new Error("No data to export");
+
+  // Create a blob and trigger download
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
 
   private createStaticBody(obj: any) {
     const body = this.world.createBody({
