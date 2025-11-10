@@ -29,30 +29,30 @@
         {
           "shape": {
             "type": "polygon",
-            "vertices": [[0, 8], [6, 0], [0, 0]]
+            "vertices": [[0,3], [3, 0], [0, 0]]
           },
           "friction": 0.5
         }
       ]
     },
     {
-      "name": "First Wall",
+      "name": "Second Ramp",
       "body": {
         "type": "static",
-        "position": [6, 5]
+        "position": [9, 0]
       },
       "fixtures": [
         {
           "shape": {
             "type": "polygon",
-            "vertices": [[0, 0], [0, 15], [2, 15], [2, 0]]
+            "vertices": [[0, 0], [3, 0], [3, 3]]
           },
           "friction": 0.5
         }
       ]
     },
      {
-      "name": "Second Wall",
+      "name": "Wall",
       "body": {
         "type": "static",
         "position": [12, 0]
@@ -61,7 +61,7 @@
         {
           "shape": {
             "type": "polygon",
-            "vertices": [[0, 0], [0, 10], [2, 10], [2, 0]]
+            "vertices": [[0, 0], [0, 3], [2, 3], [2, 0]]
           },
           "friction": 0.5
         }
@@ -71,7 +71,7 @@
       "name": "Restricted Zone",  
       "body": {
         "type": "static",
-        "position": [8, 0],
+        "position": [12, 0],
         "userData": { "isRestrictedZone": true }
       },
       "fixtures": [
@@ -115,7 +115,7 @@
       ]
     },
     {
-      "name": "HoverTriangle",
+      "name": "Triangle",
       "fixtures": [
         {
           "shape": {

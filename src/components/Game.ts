@@ -34,17 +34,19 @@ export class Game {
     }
 
     public exportToHTMLTable(): string {
-        let table = `<table border="1">
-            <tr>
-                <th>Username</th>
-                <th>Puzzle Name</th>
-                <th>Tool</th>
-                <th>Attempt Number</th>
-                <th>Position X</th>
-                <th>Position Y</th>
-                <th>Duration (ms)</th>
-                <th>Successful</th>
-            </tr>`;
+        let table = `<table>
+            <thead>
+                <tr>
+                    <th>Username</th>
+                    <th>Puzzle Name</th>
+                    <th>Tool</th>
+                    <th>Attempt Number</th>
+                    <th>Position X</th>
+                    <th>Position Y</th>
+                    <th>Duration (ms)</th>
+                    <th>Successful</th>
+                </tr>
+            </thead>`;
         this.attempts.forEach(attempt => {
             const duration = attempt.getDuration();
             table += `<tr>
@@ -75,7 +77,7 @@ class Attempt {
     private tool: string | null = null;
 
     constructor(puzzleName: string) {
-        this.username = "Carlos";
+        this.username = localStorage.getItem("playerName") || "Guest";
         this.puzzleName = puzzleName;
     }
 

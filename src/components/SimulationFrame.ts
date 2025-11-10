@@ -89,13 +89,13 @@ export class SimulationFrame {
     this.game.endCurrentAttempt(true);
 
     overlay.innerHTML = `
-      <h2>Cleared!</h2>
+      <h3>Cleared!</h3>
       <p>${this.game.exportToHTMLTable()}</p>
       <p>Total Attempts: ${this.game.getAttemptsCount()}</p>
-      <button id="download-results-btn">Download Results</button>
+      <button class="button-primary" id="download-results-btn">Download Results</button>
     `;    
     this.container.appendChild(overlay);
-    
+
     const downloadBtn = overlay.querySelector("#download-results-btn")!;
     downloadBtn.addEventListener("click", () => {
       const csvData = this.game.exportAttemptsToCSV();

@@ -43,7 +43,7 @@ export function renderPuzzlePage(puzzleName: string) {
 
   // After loading, remove loading message and show puzzle title
   loadingMessage.remove();
-  const header = document.createElement("h2");
+  const header = document.createElement("h5");
   header.textContent = `Puzzle: ${puzzleName}`;
   app.prepend(header, simContainer);
 
