@@ -9,7 +9,7 @@ declare const require: {
 
 export function renderHomePage(router: any) {
   const app = document.getElementById("app")!;
-  app.innerHTML = "<h1>Select a Puzzle</h1>";
+  app.innerHTML = "<h2>Select a Puzzle</h2>";
 
   const puzzleContext = require.context("../puzzles", false, /\.json$/);
   const puzzles = puzzleContext.keys().map((key) => ({

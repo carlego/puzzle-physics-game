@@ -2,7 +2,7 @@ import Navigo from "navigo";
 import { renderHomePage } from "./pages/HomePage";
 import { renderPuzzlePage } from "./pages/PuzzlePage";
 
-const router = new Navigo("/");
+const router = new Navigo("/", { hash: true});
 
 router.on("/", () => {
   renderHomePage(router);

@@ -45,5 +45,13 @@ export function renderPuzzlePage(puzzleName: string) {
   loadingMessage.remove();
   const header = document.createElement("h2");
   header.textContent = `Puzzle: ${puzzleName}`;
-  app.insertBefore(header, simContainer);
+  app.prepend(header, simContainer);
+
+  const backButton = document.createElement("button");
+  backButton.textContent = "← Back to Home";
+  backButton.id = "back-btn";
+  backButton.addEventListener("click", () => {
+    window.location.hash = "#/";
+  });
+  header.after(backButton);
 }
