@@ -7,26 +7,30 @@ interface ToolboxItemDef {
   fixtures: any[];
 }
 
+interface ToolboxProps {
+  world: World;
+  canvas: HTMLCanvasElement;
+  items: ToolboxItemDef[];
+  game: Game; 
+}
+
 export class Toolbox {
   private world: World;
-  private container: HTMLElement;
   private toolboxDiv: HTMLElement;
   private items: ToolboxItemDef[];
   private canvas: HTMLCanvasElement;
   private currentDragItem: ToolboxItemDef | null = null;
   private hasSpawned = false;
-  private lastDropPosition: { x: number; y: number } | null = null;
   private game: Game;
 
-  constructor(
-    world: World,
-    container: HTMLElement,
-    canvas: HTMLCanvasElement,
-    items: ToolboxItemDef[],
-    game: Game,
+  constructor({
+    world,
+    canvas,
+    items,
+    game,
+  }: ToolboxProps
   ) {
     this.world = world;
-    this.container = container;
     this.items = items;
     this.canvas = canvas;
     this.game = game;
@@ -110,7 +114,6 @@ export class Toolbox {
       this.currentDragItem = null;
       // mark as spawned & record position
       this.hasSpawned = true;
-      this.lastDropPosition = { x, y };
       this.currentDragItem = null;
     });
   }
@@ -216,18 +219,14 @@ export class Toolbox {
         spawnTime: performance.now(),
       });
     }
-
+    this.toolboxDiv.style.opacity = "0.5";
     return body;
   }
 
   public setWorld(world: World) {
     this.world = world;
     this.hasSpawned = false;
-    this.lastDropPosition = null;
-  }
-
-  public getLastDropPosition() {
-    return this.lastDropPosition;
+    this.toolboxDiv.style.opacity = "1.0";
   }
 
   public update() {

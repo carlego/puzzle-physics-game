@@ -2,6 +2,7 @@ import { World, Vec2, Polygon, Edge, } from "planck-js";
 import { Toolbox } from "./Toolbox";
 import { WorldViewport } from "./WorldViewPort";
 import { Game } from "./Game";
+import { router } from "../router";
 
 type SimulationFrameOptions = {
   container: HTMLElement;
@@ -51,7 +52,7 @@ export class SimulationFrame {
 
     this.game = new Game(this.puzzleName);
     // Toolbox manages its own rendering + drag/drop
-    this.toolbox = new Toolbox(this.world, container, this.canvas, toolboxItems, this.game);
+    this.toolbox = new Toolbox({ world: this.world, canvas: this.canvas, items: toolboxItems, game: this.game });
     this.attachResetButton(); 
     this.run();
   }
@@ -89,10 +90,11 @@ export class SimulationFrame {
     this.game.endCurrentAttempt(true);
 
     overlay.innerHTML = `
-      <h3>Cleared!</h3>
-      <p>${this.game.exportToHTMLTable()}</p>
+      <h5>Cleared!</h5>
+      <div class="table-container">${this.game.exportToHTMLTable()}</div>
       <p>Total Attempts: ${this.game.getAttemptsCount()}</p>
       <button class="button-primary" id="download-results-btn">Download Results</button>
+      <button class="button" id="home-btn">Home</button>
     `;    
     this.container.appendChild(overlay);
 
@@ -102,6 +104,12 @@ export class SimulationFrame {
       this.downloadCSV(csvData);
     });
 
+    const playAgainBtn = overlay.querySelector("#home-btn")!;
+    playAgainBtn.addEventListener("click", () => {
+      router.navigate(`/`);
+    });
+
+    
     console.log("Goal reached!");
   }
 

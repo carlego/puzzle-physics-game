@@ -15,7 +15,7 @@ if (!playerName) {
 // Create a constant header if it doesn’t exist
 let header = document.getElementById("app-header");
 if (!header) {
-  header = document.createElement("h4");
+  header = document.createElement("div");
   header.id = "app-header";
   document.body.prepend(header);
   // When clicked, prompt to change the name

@@ -4,7 +4,6 @@
   flex-direction: row;
   align-items: flex-start;
   justify-content: center;
-  gap: 1rem;
 }
 
 /* toolbox */
@@ -55,3 +54,14 @@
     font-weight: bold;
 }
 
+.table-container {
+  max-height: 300px;
+  overflow-y: auto;    
+}
+
+.table-container thead th {
+  position: sticky;
+  top: 0;
+  background: #f8f8f8;
+  z-index: 2;
+}
