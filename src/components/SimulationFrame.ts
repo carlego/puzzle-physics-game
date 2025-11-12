@@ -4,6 +4,8 @@ import { WorldViewport } from "./WorldViewPort";
 import { Game } from "./Game";
 import { router } from "../router";
 
+const FIXED_TIMESTEP = 1 / 120; // 60 Hz physics
+
 type SimulationFrameOptions = {
   container: HTMLElement;
   toolboxItems: any[];
@@ -28,6 +30,8 @@ export class SimulationFrame {
   private animationFrameId: number | null = null; // track active loop
   private puzzleName: string;
   private container: HTMLElement;
+  private lastTime: number = performance.now();
+  private accumulator: number = 0;
 
 
   constructor({container, toolboxItems, puzzleName, puzzleData} : SimulationFrameOptions) {
@@ -160,14 +164,22 @@ export class SimulationFrame {
   }
 
   private run() {
-    const step = () => {
+    const loop = (now: number) => {
       if (this.isPaused) return;
-      this.world.step(1 / 60);
-      this.toolbox.update();
+      const delta = (now - this.lastTime) / 1000; 
+      this.lastTime = now;
+      this.accumulator += delta;
+
+      while (this.accumulator >= FIXED_TIMESTEP) {
+        this.world.step(FIXED_TIMESTEP);
+        this.accumulator -= FIXED_TIMESTEP;
+      }
+
       this.render();
-      this.animationFrameId = requestAnimationFrame(step);
-    };
-    this.animationFrameId = requestAnimationFrame(step);
+      this.toolbox.update()
+      requestAnimationFrame(loop);
+    }
+    this.animationFrameId = requestAnimationFrame(loop);
   }
 
   private stopSimulation() {

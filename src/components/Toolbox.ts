@@ -237,7 +237,7 @@ export class Toolbox {
       const data = b.getUserData() as any;
       if (data?.type === "hover-triangle") {
         const elapsed = (now - data.spawnTime) / 1000;
-        if (elapsed > 0.6 && elapsed < 2.0) {
+        if (elapsed > 1.5 && elapsed < 3.0) {
           const upwardForce = new planck.Vec2(0, 20 * b.getMass());
           b.applyForceToCenter(upwardForce);
         }
